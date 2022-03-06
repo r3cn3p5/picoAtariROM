@@ -2,36 +2,40 @@
 
 .define PUBLIC addr_bus_width 12
 .define PUBLIC data_bus_width 8
-.side_set 1
 
     ; Get top-most address bits in memory of the array holding the EEPROM
     ; data and put them in the OSR
-    pull block side 0
+    pull block
 
     ; Now move them into the X scratch register for future use
-    out x, 32 side 0
+    out x, 32
 
 .wrap_target
 
-    nop side 0
+    mov osr, null      ; change to Hi-Z
+    out pindirs, 8     ; remember out uses shift bits, not value
 
-    wait 1 gpio 12 side 0
+    wait 1 gpio 12
+
+    mov osr, ~ null    ; change to output
+    out pindirs, 8     ; remember out uses shift bits, not value
 
     active:
 
+
     ; Shift the address bus into the ISR
-    in pins, addr_bus_width side 1
+    in pins, addr_bus_width
 
     ; Shift in the top-most address bits of the array holding the EEPROM data
     ; This will cause auto-push to push the ISR to our RX FIFO
-    in x, (32 - addr_bus_width) side 1
+    in x, (32 - addr_bus_width)
 
     ; DMA channel
 
     ; Auto-pull the data from the TX FIFO and put it on the data bus
-    out pins, data_bus_width side 1
+    out pins, data_bus_width
 
-    jmp PIN active side 1
+    jmp PIN active
 
 .wrap
 
@@ -45,11 +49,11 @@ static inline void eeprom_init(PIO pio, uint sm, uint offset, uint pinA0, uint p
     sm_config_set_in_pins(&c, pinA0);
 
     // Assign the address bus pins to PIO duty
-    for(uint idx = 0; idx < eeprom_addr_bus_width; idx++)
+    for(uint idx = 0; idx < eeprom_addr_bus_width + 1; idx++)
         pio_gpio_init(pio, pinA0 + idx);
 
     // Set the address bus pins to 'input'
-    pio_sm_set_consecutive_pindirs(pio, sm, pinA0, eeprom_addr_bus_width, false);
+    pio_sm_set_consecutive_pindirs(pio, sm, pinA0, eeprom_addr_bus_width + 1, false);
 
     // Map the state machine's OUT pin group to the data bus
     sm_config_set_out_pins(&c, pinD0, eeprom_data_bus_width);
@@ -70,10 +74,6 @@ static inline void eeprom_init(PIO pio, uint sm, uint offset, uint pinA0, uint p
     // Set the jump pin
     sm_config_set_jmp_pin (&c, 12);
 
-    // Set the
-    pio_sm_set_consecutive_pindirs(pio, sm, 21, 1, true);
-    pio_gpio_init(pio, 21);
-    sm_config_set_sideset_pins (&c, 21);
 
     // Load our configuration, and jump to the start of the program
     pio_sm_init(pio, sm, offset, &c);
