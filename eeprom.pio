@@ -12,17 +12,6 @@
 
 .wrap_target
 
-    mov osr, null      ; change to Hi-Z
-    out pindirs, 8     ; remember out uses shift bits, not value
-
-    wait 1 gpio 12
-
-    mov osr, ~ null    ; change to output
-    out pindirs, 8     ; remember out uses shift bits, not value
-
-    active:
-
-
     ; Shift the address bus into the ISR
     in pins, addr_bus_width
 
@@ -35,7 +24,7 @@
     ; Auto-pull the data from the TX FIFO and put it on the data bus
     out pins, data_bus_width
 
-    jmp PIN active
+
 
 .wrap
 
@@ -49,11 +38,11 @@ static inline void eeprom_init(PIO pio, uint sm, uint offset, uint pinA0, uint p
     sm_config_set_in_pins(&c, pinA0);
 
     // Assign the address bus pins to PIO duty
-    for(uint idx = 0; idx < eeprom_addr_bus_width + 1; idx++)
+    for(uint idx = 0; idx < eeprom_addr_bus_width; idx++)
         pio_gpio_init(pio, pinA0 + idx);
 
     // Set the address bus pins to 'input'
-    pio_sm_set_consecutive_pindirs(pio, sm, pinA0, eeprom_addr_bus_width + 1, false);
+    pio_sm_set_consecutive_pindirs(pio, sm, pinA0, eeprom_addr_bus_width, false);
 
     // Map the state machine's OUT pin group to the data bus
     sm_config_set_out_pins(&c, pinD0, eeprom_data_bus_width);
@@ -70,9 +59,6 @@ static inline void eeprom_init(PIO pio, uint sm, uint offset, uint pinA0, uint p
 
     // Enable auto-pull after 'eeprom_data_bus_width' bits
     sm_config_set_out_shift(&c, true, true, eeprom_data_bus_width);
-
-    // Set the jump pin
-    sm_config_set_jmp_pin (&c, 12);
 
 
     // Load our configuration, and jump to the start of the program

@@ -169,7 +169,7 @@ int main()
 
 
     // Overclock a bit if you need to
-    set_sys_clock_khz(270000, true);
+    // set_sys_clock_khz(270000, true);
 
     init();
     sleep_ms(1);
